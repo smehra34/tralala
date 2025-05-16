@@ -5,32 +5,112 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
+		<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+		<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 		<style>
 			body {
-				background-color: #bfe3dd;
-				color: #000;
+				background: linear-gradient(135deg, #dbeafe 0%, #f0fdfa 100%);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
 			}
-
-			a {
-				color: #2983ff;
+			#main-center {
+				flex: 1 1 auto;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			#container {
+				width: 1000px;
+				height: 600px;
+				margin: 0;
+				border-radius: 24px;
+				box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1.5px 4px rgba(0,0,0,0.08);
+				background: #fff;
+				position: relative;
+				overflow: hidden;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			#add-glb-btn {
+				font-size: 1.3rem;
+				padding: 0.75rem 2.5rem;
+				border-radius: 2rem;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+				background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+				border: none;
+				color: #fff;
+				font-weight: 600;
+				transition: background 0.2s;
+			}
+			#add-glb-btn:hover {
+				background: linear-gradient(90deg, #818cf8 0%, #38bdf8 100%);
+			}
+			#attachments {
+				border-radius: 16px 16px 0 0;
+				padding: 12px 0 0 0;
+				margin-bottom: 0;
+			}
+			#input-section {
+				background: #f8fafc;
+				border-radius: 0 0 16px 16px;
+				box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+				border-top: 1px solid #e0e7ef;
+			}
+			#text-box {
+				border-radius: 12px;
+				border: 1px solid #cbd5e1;
+				background: #fff;
+				font-size: 1.1rem;
+			}
+			.btn-primary {
+				background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+				border: none;
+				font-weight: 600;
+			}
+			.btn-primary:hover {
+				background: linear-gradient(90deg, #818cf8 0%, #38bdf8 100%);
+			}
+			.img-thumbnail {
+				border-radius: 12px;
+				box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 			}
 		</style>
 	</head>
 
 	<body>
 
-		<div id="container"></div>
+		<div id="main-center">
+			<div id="container" class="d-flex justify-content-center align-items-center">
+				<button id="add-glb-btn" class="btn btn-primary" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;">Add Base GLB (optional)</button>
+				<input type="file" id="glb-input" accept=".glb" style="display:none;">
+			</div>
+		</div>
 
-		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgl - animation - keyframes<br/>
-			Model: <a href="https://artstation.com/artwork/1AGwX" target="_blank" rel="noopener">Littlest Tokyo</a> by
-			<a href="https://artstation.com/glenatron" target="_blank" rel="noopener">Glen Fox</a>, CC Attribution.
+		<div id="input-section" class="fixed-bottom p-3" style="z-index: 1000;">
+			<div id="attachments" class="container mb-5"></div>
+			<div class="container">
+				<div class="row">
+					<div class="col-md-8">
+						<textarea id="text-box" class="form-control" placeholder="Type your query here..." rows="2"></textarea>
+					</div>
+					<div class="col-md-4 d-flex justify-content-end align-items-center">
+						<button id="audio-button" class="btn btn-outline-secondary mx-1">🎤</button>
+						<input type="file" id="attachment-button" accept="image/*" style="display: none;" multiple>
+						<button id="attachment-trigger" class="btn btn-outline-secondary mx-1">📎</button>
+						<button id="submit-button" class="btn btn-primary mx-1">Submit</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "./build/three.module.js",
+					"three": "../build/three.module.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -48,17 +128,14 @@
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 			import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
-			let mixer;
-
 			const clock = new THREE.Clock();
 			const container = document.getElementById( 'container' );
 
 			const stats = new Stats();
-			container.appendChild( stats.dom );
 
 			const renderer = new THREE.WebGLRenderer( { antialias: true } );
 			renderer.setPixelRatio( window.devicePixelRatio );
-			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setSize( 1000, 600 );
 			container.appendChild( renderer.domElement );
 
 			const pmremGenerator = new THREE.PMREMGenerator( renderer );
@@ -81,25 +158,47 @@
 
 			const loader = new GLTFLoader();
 			loader.setDRACOLoader( dracoLoader );
-			loader.load( 'models/gltf/LittlestTokyo.glb', function ( gltf ) {
 
-				const model = gltf.scene;
-				model.position.set( 1, 1, 0 );
-				model.scale.set( 0.01, 0.01, 0.01 );
-				scene.add( model );
+			let baseGLBFile = null;
 
-				// mixer = new THREE.AnimationMixer( model );
-				// mixer.clipAction( gltf.animations[ 0 ] ).play();
-				//
-				// renderer.setAnimationLoop( animate );
-				renderer.render( scene, camera );
+			const addGlbBtn = document.getElementById('add-glb-btn');
+			const glbInput = document.getElementById('glb-input');
 
-			}, undefined, function ( e ) {
+			addGlbBtn.addEventListener('click', () => {
+				glbInput.click();
+			});
 
-				console.error( e );
+			glbInput.addEventListener('change', (event) => {
+				const file = event.target.files[0];
+				if (file) {
+					baseGLBFile = file;
+					// Remove button after file is loaded
+					addGlbBtn.style.display = 'none';
+					// Load and render the GLB
+					const url = URL.createObjectURL(file);
+					loader.load(url, function (gltf) {
+						// Remove previous model if any
+						while (scene.children.length > 0) {
+							scene.remove(scene.children[0]);
+						}
+						const model = gltf.scene;
+						// Normalize size as before
+						const box = new THREE.Box3().setFromObject(model);
+						const size = new THREE.Vector3();
+						box.getSize(size);
+						const maxDimension = Math.max(size.x, size.y, size.z);
+						const scaleFactor = 4 / maxDimension;
+						model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+						scene.add(model);
+						// Add light
+						const light = new THREE.DirectionalLight(0xffffff, 1);
+						light.position.set(5, 10, 7.5);
+						scene.add(light);
+					});
+				}
+			});
 
-			} );
-
+			renderer.setAnimationLoop( animate );
 
 			window.onresize = function () {
 
@@ -115,8 +214,6 @@
 
 				const delta = clock.getDelta();
 
-				mixer.update( delta );
-
 				controls.update();
 
 				stats.update();
@@ -125,6 +222,102 @@
 
 			}
 
+			let isRecording = false;
+			let mediaRecorder;
+			let audioChunks = [];
+
+			const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+			recognition.interimResults = true;
+			recognition.lang = 'en-US';
+			recognition.continuous = true;
+
+			document.getElementById('audio-button').addEventListener('click', function() {
+				if (!isRecording) {
+					recognition.start();
+					isRecording = true;
+					this.textContent = '⏹️';
+
+					recognition.onresult = event => {
+						const transcript = Array.from(event.results)
+							.map(result => result[0])
+							.map(result => result.transcript)
+							.join('');
+						document.getElementById('text-box').value = transcript;
+					};
+
+					recognition.onend = () => {
+						isRecording = false;
+						this.textContent = '🎤';
+					};
+				} else {
+					recognition.stop();
+					isRecording = false;
+					this.textContent = '🎤';
+				}
+			});
+
+			document.getElementById('attachment-trigger').addEventListener('click', function() {
+				document.getElementById('attachment-button').click();
+			});
+
+			document.getElementById('attachment-button').addEventListener('change', function(event) {
+				const files = event.target.files;
+				const attachmentsDiv = document.getElementById('attachments');
+				for (let file of files) {
+					const imgContainer = document.createElement('div');
+					imgContainer.style.position = 'relative';
+					imgContainer.style.display = 'inline-block';
+					imgContainer.style.margin = '5px';
+
+					const img = document.createElement('img');
+					img.src = URL.createObjectURL(file);
+					img.className = 'img-thumbnail';
+					img.style.width = '100px';
+
+					const removeButton = document.createElement('button');
+					removeButton.textContent = '✖';
+					removeButton.className = 'btn btn-danger btn-sm';
+					removeButton.style.position = 'absolute';
+					removeButton.style.top = '0';
+					removeButton.style.right = '0';
+					removeButton.style.padding = '2px 5px';
+					removeButton.onclick = () => {
+						attachmentsDiv.removeChild(imgContainer);
+					};
+
+					imgContainer.appendChild(img);
+					imgContainer.appendChild(removeButton);
+					attachmentsDiv.appendChild(imgContainer);
+				}
+			});
+
+			document.getElementById('submit-button').addEventListener('click', submitQuery);
+			document.getElementById('text-box').addEventListener('keypress', function(event) {
+				if (event.key === 'Enter') {
+					event.preventDefault();
+					submitQuery();
+				}
+			});
+
+			function submitQuery() {
+				const textBox = document.getElementById('text-box');
+				const queryText = textBox.value;
+				// Collect image paths (object URLs)
+				const attachmentsDiv = document.getElementById('attachments');
+				const images = attachmentsDiv.querySelectorAll('img');
+				const imagePaths = Array.from(images).map(img => img.src);
+				// Get the currently loaded GLB file path (object URL)
+				let glbPath = null;
+				if (baseGLBFile) {
+					glbPath = URL.createObjectURL(baseGLBFile);
+				}
+				console.log('Query submitted:', {
+					text: queryText,
+					images: imagePaths,
+					glb: glbPath
+				});
+				textBox.value = '';
+			}
 
 		</script>
 

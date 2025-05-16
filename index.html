@@ -49,6 +49,12 @@
 			#add-glb-btn:hover {
 				background: linear-gradient(90deg, #818cf8 0%, #38bdf8 100%);
 			}
+
+			#save-glb-btn:hover svg {
+				opacity: 0.7;
+				cursor: pointer;
+			}
+
 			#attachments {
 				border-radius: 16px 16px 0 0;
 				padding: 12px 0 0 0;
@@ -86,6 +92,16 @@
 		<div id="main-center">
 			<div id="container" class="d-flex justify-content-center align-items-center">
 				<button id="add-glb-btn" class="btn btn-primary" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;">Add Base GLB (optional)</button>
+				<button id="save-glb-btn" title="Download GLB" style="position:absolute;top:20px;left:20px;z-index:10;display:none;background:transparent;border:none;">
+					<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#0f172a" viewBox="0 0 24 24">
+						<path d="M5 20h14v-2H5v2zM13 4h-2v8H8l4 4 4-4h-3V4z"/>
+					</svg>
+				</button>
+				<button id="clear-canvas-btn" title="Clear Canvas" style="position:absolute;top:20px;right:20px;z-index:10;display:none;background:transparent;border:none;">
+					<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#0f172a" viewBox="0 0 24 24">
+						<path d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 1 0 5.7 7.11L10.59 12l-4.89 4.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/>
+					</svg>
+				</button>
 				<input type="file" id="glb-input" accept=".glb" style="display:none;">
 			</div>
 		</div>
@@ -163,6 +179,8 @@
 
 			const addGlbBtn = document.getElementById('add-glb-btn');
 			const glbInput = document.getElementById('glb-input');
+			const saveGlbBtn = document.getElementById('save-glb-btn');
+			const clearCanvasBtn = document.getElementById('clear-canvas-btn');
 
 			addGlbBtn.addEventListener('click', () => {
 				glbInput.click();
@@ -172,7 +190,11 @@
 				const file = event.target.files[0];
 				if (file) {
 					baseGLBFile = file;
-					// Remove button after file is loaded
+					// show save and clear button after file is uploaded
+					saveGlbBtn.style.display = 'inline-block';
+					clearCanvasBtn.style.display = 'inline-block';
+
+					// Remove upload button after file is loaded
 					addGlbBtn.style.display = 'none';
 					// Load and render the GLB
 					const url = URL.createObjectURL(file);
@@ -197,6 +219,26 @@
 					});
 				}
 			});
+
+			clearCanvasBtn.addEventListener('click', () => {
+				// Remove all children from the scene
+				while (scene.children.length > 0) {
+					scene.remove(scene.children[0]);
+				}
+				// Re-add environment lighting if needed
+				scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+				// Reset state
+				baseGLBFile = null;
+
+				// Show add button again
+				addGlbBtn.style.display = 'block';
+
+				// Hide buttons
+				saveGlbBtn.style.display = 'none';
+				clearCanvasBtn.style.display = 'none';
+			});
+
 
 			renderer.setAnimationLoop( animate );
 
@@ -259,6 +301,18 @@
 			document.getElementById('attachment-trigger').addEventListener('click', function() {
 				document.getElementById('attachment-button').click();
 			});
+
+			saveGlbBtn.addEventListener('click', () => {
+				if (baseGLBFile) {
+					const a = document.createElement('a');
+					a.href = URL.createObjectURL(baseGLBFile);
+					a.download = baseGLBFile.name;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+				}
+			});
+
 
 			document.getElementById('attachment-button').addEventListener('change', function(event) {
 				const files = event.target.files;

@@ -113,6 +113,43 @@
 		</div>
 	</div>
 
+	<div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content" style="border-radius: 1rem; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
+				<div class="modal-header bg-warning text-dark" style="border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
+					<h5 class="modal-title" id="alertModalLabel">Input Required</h5>
+					<button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close" style="font-size: 1.4rem;">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body text-dark">
+					Please provide either text or at least one image before submitting.
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">OK</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content" style="border-radius: 1rem; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.15);">
+				<div class="modal-header bg-danger text-white" style="border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
+					<h5 class="modal-title" id="errorModalLabel">Error</h5>
+					<button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="font-size: 1.4rem;">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body text-dark">
+					Failed to process your request. Please try again.
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">OK</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<body>
 
@@ -193,7 +230,7 @@
 			const controls = new OrbitControls( camera, renderer.domElement );
 			controls.target.set( 0, 0.5, 0 );
 			controls.update();
-			controls.enablePan = false;
+			controls.enablePan = true;
 			controls.enableDamping = true;
 
 			const dracoLoader = new DRACOLoader();
@@ -385,11 +422,18 @@
 
 			async function submitQuery() {
 				const textBox = document.getElementById('text-box');
-				const queryText = textBox.value;
+				const queryText = textBox.value.trim();
 				
 				// Collect images and convert to base64
 				const attachmentsDiv = document.getElementById('attachments');
 				const images = attachmentsDiv.querySelectorAll('img');
+				
+				// Validate input
+				if (!queryText && images.length === 0) {
+					$('#alertModal').modal('show');
+					return;
+				}
+
 				const imageBase64Promises = Array.from(images).map(async (img) => {
 					const response = await fetch(img.src);
 					const blob = await response.blob();
@@ -437,6 +481,10 @@
 
 					const result = await response.json();
 					console.log('Server response:', result);
+
+					// Clear attachments after successful submission
+					const attachmentsDiv = document.getElementById('attachments');
+					attachmentsDiv.innerHTML = '';
 
 					// Handle the GLB response if it exists
 					if (result.glb) {
@@ -490,6 +538,7 @@
 					}
 				} catch (error) {
 					console.error('Error sending data:', error);
+					$('#errorModal').modal('show');
 				}
 
 				textBox.value = '';

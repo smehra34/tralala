@@ -1,4 +1,4 @@
-# RCP (Remote Control Protocol) - 3D Model Generation and Refinement
+# Tralala - Seamless 3D model generation
 
 A powerful system for generating and refining 3D models using text prompts and images, built with Python and Flask.
 

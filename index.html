@@ -154,6 +154,22 @@
 	<body>
 
 		<div id="main-center">
+			<div id="generated-image-container" style="margin-right: 20px; display: none;">
+				<h4 style="text-align: center; margin-bottom: 15px;">Image generated for 3D model</h4>
+				<div style="position: relative;">
+					<img id="generated-image" style="width: 300px; height: 300px; object-fit: contain; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+					<button id="download-image-btn" title="Download Image" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; display: none;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#0f172a" viewBox="0 0 24 24">
+							<path d="M5 20h14v-2H5v2zM13 4h-2v8H8l4 4 4-4h-3V4z"/>
+						</svg>
+					</button>
+					<button id="close-image-btn" title="Close Image" style="position: absolute; top: 10px; left: 10px; background: transparent; border: none; display: none;">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#0f172a" viewBox="0 0 24 24">
+							<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+						</svg>
+					</button>
+				</div>
+			</div>
 			<div id="container" class="d-flex justify-content-center align-items-center">
 				<button id="add-glb-btn" class="btn btn-primary" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;">Add Base GLB (optional)</button>
 				<button id="save-glb-btn" title="Download GLB" style="position:absolute;top:20px;left:20px;z-index:10;display:none;background:transparent;border:none;">
@@ -189,6 +205,10 @@
 						<button id="audio-button" class="btn btn-outline-secondary mx-1">🎤</button>
 						<input type="file" id="attachment-button" accept="image/*" style="display: none;" multiple>
 						<button id="attachment-trigger" class="btn btn-outline-secondary mx-1">📎</button>
+						<div class="custom-control custom-checkbox mx-2">
+							<input type="checkbox" class="custom-control-input" id="useGeneratedImage">
+							<label class="custom-control-label" for="useGeneratedImage">Refine</label>
+						</div>
 						<button id="submit-button" class="btn btn-primary mx-1">Submit</button>
 					</div>
 				</div>
@@ -255,6 +275,7 @@
 			controls.update();
 
 			let baseGLBFile = null;
+			let generatedImageBase64 = null;
 
 			const addGlbBtn = document.getElementById('add-glb-btn');
 			const glbInput = document.getElementById('glb-input');
@@ -262,7 +283,28 @@
 			const clearCanvasBtn = document.getElementById('clear-canvas-btn');
 			const resetViewBtn = document.getElementById('reset-view-btn');
 			const attachmentTriggerBtn = document.getElementById('attachment-trigger');
+			const generatedImageContainer = document.getElementById('generated-image-container');
+			const generatedImage = document.getElementById('generated-image');
+			const downloadImageBtn = document.getElementById('download-image-btn');
+			const closeImageBtn = document.getElementById('close-image-btn');
+			const useGeneratedImageCheckbox = document.getElementById('useGeneratedImage');
 
+			closeImageBtn.addEventListener('click', () => {
+				generatedImageContainer.style.display = 'none';
+				downloadImageBtn.style.display = 'none';
+				closeImageBtn.style.display = 'none';
+			});
+
+			downloadImageBtn.addEventListener('click', () => {
+				if (generatedImageBase64) {
+					const a = document.createElement('a');
+					a.href = 'data:image/png;base64,' + generatedImageBase64;
+					a.download = 'generated-model-image.png';
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+				}
+			});
 
 			addGlbBtn.addEventListener('click', () => {
 				glbInput.click();
@@ -317,6 +359,9 @@
 				}
 				scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 				baseGLBFile = null;
+				generatedImageBase64 = null;
+				generatedImageContainer.style.display = 'none';
+				downloadImageBtn.style.display = 'none';
 
 				// Reset UI
 				addGlbBtn.style.display = 'block';
@@ -325,7 +370,7 @@
 				resetViewBtn.style.display = 'none';
 
 				// Enable attachment button
-    		attachmentTriggerBtn.disabled = false;
+				attachmentTriggerBtn.disabled = false;
 
 				// Hide modal
 				$('#confirmClearModal').modal('hide');
@@ -460,20 +505,10 @@
 				const images = attachmentsDiv.querySelectorAll('img');
 
 				// Validate input
-				if (!queryText && images.length === 0) {
+				if (!queryText && !generatedImageBase64 && !baseGLBFile && images.length === 0) {
 					$('#alertModal').modal('show');
 					return;
 				}
-
-				const imageBase64Promises = Array.from(images).map(async (img) => {
-					const response = await fetch(img.src);
-					const blob = await response.blob();
-					return new Promise((resolve) => {
-						const reader = new FileReader();
-						reader.onloadend = () => resolve(reader.result);
-						reader.readAsDataURL(blob);
-					});
-				});
 
 				// Convert GLB to base64 if it exists
 				let glbBase64 = null;
@@ -486,18 +521,36 @@
 					glbBase64 = glbBase64.split(',')[1];
 				}
 
-				// Wait for all image conversions to complete
-				var imageBase64Array = await Promise.all(imageBase64Promises);
-				for (let i = 0; i < imageBase64Array.length; i++) {
-					imageBase64Array[i] = imageBase64Array[i].split(',')[1];
-				}
-
 				// Prepare the data to send
 				const data = {
 					prompt: queryText,
-					images: imageBase64Array,
-					glb: glbBase64
+					images: [],
+					glb: useGeneratedImageCheckbox.checked ? glbBase64 : null,
 				};
+
+				// If refine checkbox is checked and we have a generated image, use it
+				if (!useGeneratedImageCheckbox.checked && generatedImageBase64) {
+					data.images = [generatedImageBase64];
+				} else if (images.length > 0 && !useGeneratedImageCheckbox.checked) {
+					// Otherwise use attachments if available
+					const imageBase64Promises = Array.from(images).map(async (img) => {
+						const response = await fetch(img.src);
+						const blob = await response.blob();
+						return new Promise((resolve) => {
+							const reader = new FileReader();
+							reader.onloadend = () => resolve(reader.result);
+							reader.readAsDataURL(blob);
+						});
+					});
+
+					// Wait for all image conversions to complete
+					var imageBase64Array = await Promise.all(imageBase64Promises);
+					for (let i = 0; i < imageBase64Array.length; i++) {
+						imageBase64Array[i] = imageBase64Array[i].split(',')[1];
+					}
+
+					data.images = imageBase64Array;
+				}
 
 				console.log('Sending data:', data);
 
@@ -517,15 +570,14 @@
 					const result = await response.json();
 					console.log('Server response:', result);
 
-					// Clear attachments after successful submission
-					const attachmentsDiv = document.getElementById('attachments');
-					attachmentsDiv.innerHTML = '';
-
 					// Handle the GLB response if it exists
 					if (result.glb) {
 
-						console.log('Received GLB:', result.glb);
+						// Clear attachments after successful submission
+						const attachmentsDiv = document.getElementById('attachments');
+						attachmentsDiv.innerHTML = '';
 
+						
 						// Convert base64 to blob
 						const byteCharacters = atob(result.glb);
 						const byteNumbers = new Array(byteCharacters.length);
@@ -567,11 +619,20 @@
 							baseGLBFile = blob;
 
 							// Disable attachment button
-              attachmentTriggerBtn.disabled = true;
+							attachmentTriggerBtn.disabled = true;
 						});
 
 						// Clean up the object URL
 						URL.revokeObjectURL(url);
+					}
+
+					// Handle the generated image if it exists
+					if (result.image) {
+						generatedImageBase64 = result.image;
+						generatedImage.src = 'data:image/png;base64,' + result.image;
+						generatedImageContainer.style.display = 'block';
+						downloadImageBtn.style.display = 'inline-block';
+						closeImageBtn.style.display = 'inline-block';
 					}
 				} catch (error) {
 					console.error('Error sending data:', error);

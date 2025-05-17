@@ -86,7 +86,7 @@ def count_characters():
             with open(png_cache, "wb+") as f:
                 f.write(base64.b64decode(encoded_img))
             imgs.append(Image.open(png_cache))
-        if data.get("prompt", None) is not None:
+        if data.get("prompt", "") != "":
             prompt = data["prompt"]
             print("Refining images with prompt:", prompt)
             imgs = [refine(prompt, imgs[0])]

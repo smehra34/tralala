@@ -261,6 +261,7 @@
 			const saveGlbBtn = document.getElementById('save-glb-btn');
 			const clearCanvasBtn = document.getElementById('clear-canvas-btn');
 			const resetViewBtn = document.getElementById('reset-view-btn');
+			const attachmentTriggerBtn = document.getElementById('attachment-trigger');
 
 
 			addGlbBtn.addEventListener('click', () => {
@@ -278,6 +279,9 @@
 
 					// Remove upload button after file is loaded
 					addGlbBtn.style.display = 'none';
+					// Disable attachment button
+        	attachmentTriggerBtn.disabled = true; //
+
 					// Load and render the GLB
 					const url = URL.createObjectURL(file);
 					loader.load(url, function (gltf) {
@@ -319,6 +323,9 @@
 				saveGlbBtn.style.display = 'none';
 				clearCanvasBtn.style.display = 'none';
 				resetViewBtn.style.display = 'none';
+
+				// Enable attachment button
+    		attachmentTriggerBtn.disabled = false;
 
 				// Hide modal
 				$('#confirmClearModal').modal('hide');
@@ -558,6 +565,9 @@
 
 							// Store the blob as the current GLB file
 							baseGLBFile = blob;
+
+							// Disable attachment button
+              attachmentTriggerBtn.disabled = true;
 						});
 
 						// Clean up the object URL

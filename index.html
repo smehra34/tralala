@@ -431,6 +431,57 @@
 
 					const result = await response.json();
 					console.log('Server response:', result);
+
+					// Handle the GLB response if it exists
+					if (result.glb) {
+
+						console.log('Received GLB:', result.glb);
+
+						// Convert base64 to blob
+						const base64Data = result.glb.split(',')[1];
+						const byteCharacters = atob(base64Data);
+						const byteNumbers = new Array(byteCharacters.length);
+						for (let i = 0; i < byteCharacters.length; i++) {
+							byteNumbers[i] = byteCharacters.charCodeAt(i);
+						}
+						const byteArray = new Uint8Array(byteNumbers);
+						const blob = new Blob([byteArray], { type: 'model/gltf-binary' });
+
+						// Create object URL from blob
+						const url = URL.createObjectURL(blob);
+
+						// Load and render the GLB
+						loader.load(url, function (gltf) {
+							// Remove previous model if any
+							while (scene.children.length > 0) {
+								scene.remove(scene.children[0]);
+							}
+							const model = gltf.scene;
+							// Normalize size
+							const box = new THREE.Box3().setFromObject(model);
+							const size = new THREE.Vector3();
+							box.getSize(size);
+							const maxDimension = Math.max(size.x, size.y, size.z);
+							const scaleFactor = 4 / maxDimension;
+							model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+							scene.add(model);
+							// Add light
+							const light = new THREE.DirectionalLight(0xffffff, 1);
+							light.position.set(5, 10, 7.5);
+							scene.add(light);
+
+							// Show save and clear buttons
+							saveGlbBtn.style.display = 'inline-block';
+							clearCanvasBtn.style.display = 'inline-block';
+							addGlbBtn.style.display = 'none';
+
+							// Store the blob as the current GLB file
+							baseGLBFile = blob;
+						});
+
+						// Clean up the object URL
+						URL.revokeObjectURL(url);
+					}
 				} catch (error) {
 					console.error('Error sending data:', error);
 				}

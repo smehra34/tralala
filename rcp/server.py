@@ -12,6 +12,8 @@ from flask_cors import CORS
 from trellis.pipelines import TrellisTextTo3DPipeline, TrellisImageTo3DPipeline
 from trellis.utils import postprocessing_utils
 
+import numpy as np
+
 print("Creating model!")
 pipeline = TrellisTextTo3DPipeline.from_pretrained("larsquaedvlieg/TRELLIS-text-large-fork")
 pipeline.cuda()

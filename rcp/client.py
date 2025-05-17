@@ -21,17 +21,24 @@ def main():
         try:
             rm(cache_path)
             rm(output_path)
-            kind = input("Prompt kind? (img/text): ")
-            if kind == "img":
-                img_paths = input("Comma-separated paths of the images: ").split(",")
-                data = {"images": []}
+
+            data = {"images": [], "prompt": None, "glb": None}
+
+            img_paths = input("Comma-separated paths of the images (optional): ")
+            if img_paths != "":
+                img_paths = img_paths.split(",")
                 for path in img_paths:
                     with open(path, "rb") as f:
                         b = f.read()
-                    data["images"].append(base64.b64encode(b).decode("utf-8"))
-            else:
-                assert kind == "text"
-                prompt = input("Prompt: ")
+                data["images"].append(base64.b64encode(b).decode("utf-8"))
+
+            prompt = input("Prompt (optional): ")
+            if prompt != "":
+                data["prompt"] = prompt
+
+            assert len(data["images"]) > 0 or data["prompt"] is not None
+
+            if len(data["images"]) == 0:  # Then maybe we can add glb refinement.
                 path = input("Path to glb (optional): ")
                 data = {"prompt": prompt}
                 if path != "":

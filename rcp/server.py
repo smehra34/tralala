@@ -100,6 +100,12 @@ def count_characters():
             with open(glb_cache, "wb+") as f:
                 f.write(glb)
             mesh = trimesh.load(glb_cache)
+            rot = trimesh.transformations.rotation_matrix(
+                        angle=np.radians(90),
+                            direction=[1, 0, 0],  # X-axis
+                                point=[0, 0, 0]
+                                )
+            mesh.apply_transform(rot)
             mesh.export(ply_cache)
             mesh = o3d.io.read_triangle_mesh(ply_cache)
             output = pipeline.run_variant(mesh, prompt, seed=1234)

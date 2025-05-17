@@ -476,14 +476,18 @@
 						reader.onloadend = () => resolve(reader.result);
 						reader.readAsDataURL(baseGLBFile);
 					});
+					glbBase64 = glbBase64.split(',')[1];
 				}
 
 				// Wait for all image conversions to complete
-				const imageBase64Array = await Promise.all(imageBase64Promises);
+				var imageBase64Array = await Promise.all(imageBase64Promises);
+				for (let i = 0; i < imageBase64Array.length; i++) {
+					imageBase64Array[i] = imageBase64Array[i].split(',')[1];
+				}
 
 				// Prepare the data to send
 				const data = {
-					text: queryText,
+					prompt: queryText,
 					images: imageBase64Array,
 					glb: glbBase64
 				};
@@ -516,8 +520,7 @@
 						console.log('Received GLB:', result.glb);
 
 						// Convert base64 to blob
-						const base64Data = result.glb.split(',')[1];
-						const byteCharacters = atob(base64Data);
+						const byteCharacters = atob(result.glb);
 						const byteNumbers = new Array(byteCharacters.length);
 						for (let i = 0; i < byteCharacters.length; i++) {
 							byteNumbers[i] = byteCharacters.charCodeAt(i);

@@ -193,7 +193,7 @@
 			const controls = new OrbitControls( camera, renderer.domElement );
 			controls.target.set( 0, 0.5, 0 );
 			controls.update();
-			controls.enablePan = false;
+			controls.enablePan = true;
 			controls.enableDamping = true;
 
 			const dracoLoader = new DRACOLoader();
@@ -386,7 +386,7 @@
 			async function submitQuery() {
 				const textBox = document.getElementById('text-box');
 				const queryText = textBox.value;
-				
+
 				// Collect images and convert to base64
 				const attachmentsDiv = document.getElementById('attachments');
 				const images = attachmentsDiv.querySelectorAll('img');
@@ -399,7 +399,7 @@
 						reader.readAsDataURL(blob);
 					});
 				});
-				
+
 				// Convert GLB to base64 if it exists
 				let glbBase64 = null;
 				if (baseGLBFile) {
@@ -443,6 +443,34 @@
 
 				textBox.value = '';
 			}
+
+			window.addEventListener('keydown', (event) => {
+				if (!event.shiftKey) return;
+
+				const panSpeed = 0.1;
+				const offset = new THREE.Vector3();
+
+				switch (event.key) {
+					case 'ArrowUp':
+						offset.set(0, panSpeed, 0);
+						break;
+					case 'ArrowDown':
+						offset.set(0, -panSpeed, 0);
+						break;
+					case 'ArrowLeft':
+						offset.set(-panSpeed, 0, 0);
+						break;
+					case 'ArrowRight':
+						offset.set(panSpeed, 0, 0);
+						break;
+					default:
+						return;
+				}
+
+				controls.target.add(offset);
+				camera.position.add(offset);
+			});
+
 
 		</script>
 

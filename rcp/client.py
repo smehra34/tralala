@@ -3,16 +3,24 @@ import requests
 
 
 def main():
-    path = "cache/temp.glb"
+    cache_path = "cache/temp.glb"
     done = False
     while not done:
         try:
-            response = requests.post("http://localhost:8080/generate", json={"prompt": input("Prompt: ")})
+            prompt = input("Prompt: ")
+            path = input("Path to glb (optional): ")
+            data = {"prompt": prompt}
+            if path != "":
+                with open(path, "rb") as f:
+                    glb = f.read()
+                data["glb"] = base64.b64encode(glb).decode("utf-8")
+
+            response = requests.post("http://localhost:8080/generate", json=data)
             assert response.ok
             response = response.json()
             glb = base64.b64decode(response["glb"])
             print("Writing result in", path)
-            with open(path, "wb+") as f:
+            with open(cache_path, "wb+") as f:
                 f.write(glb)
         except KeyboardInterrupt:
             done = True

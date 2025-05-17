@@ -383,23 +383,64 @@
 				}
 			});
 
-			function submitQuery() {
+			async function submitQuery() {
 				const textBox = document.getElementById('text-box');
 				const queryText = textBox.value;
-				// Collect image paths (object URLs)
+				
+				// Collect images and convert to base64
 				const attachmentsDiv = document.getElementById('attachments');
 				const images = attachmentsDiv.querySelectorAll('img');
-				const imagePaths = Array.from(images).map(img => img.src);
-				// Get the currently loaded GLB file path (object URL)
-				let glbPath = null;
-				if (baseGLBFile) {
-					glbPath = URL.createObjectURL(baseGLBFile);
-				}
-				console.log('Query submitted:', {
-					text: queryText,
-					images: imagePaths,
-					glb: glbPath
+				const imageBase64Promises = Array.from(images).map(async (img) => {
+					const response = await fetch(img.src);
+					const blob = await response.blob();
+					return new Promise((resolve) => {
+						const reader = new FileReader();
+						reader.onloadend = () => resolve(reader.result);
+						reader.readAsDataURL(blob);
+					});
 				});
+				
+				// Convert GLB to base64 if it exists
+				let glbBase64 = null;
+				if (baseGLBFile) {
+					glbBase64 = await new Promise((resolve) => {
+						const reader = new FileReader();
+						reader.onloadend = () => resolve(reader.result);
+						reader.readAsDataURL(baseGLBFile);
+					});
+				}
+
+				// Wait for all image conversions to complete
+				const imageBase64Array = await Promise.all(imageBase64Promises);
+
+				// Prepare the data to send
+				const data = {
+					text: queryText,
+					images: imageBase64Array,
+					glb: glbBase64
+				};
+
+				console.log('Sending data:', data);
+
+				try {
+					const response = await fetch('http://localhost:8080/generate', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(data)
+					});
+
+					if (!response.ok) {
+						throw new Error(`HTTP error! status: ${response.status}`);
+					}
+
+					const result = await response.json();
+					console.log('Server response:', result);
+				} catch (error) {
+					console.error('Error sending data:', error);
+				}
+
 				textBox.value = '';
 			}
 

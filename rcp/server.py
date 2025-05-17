@@ -13,10 +13,10 @@ from trellis.pipelines import TrellisTextTo3DPipeline, TrellisImageTo3DPipeline
 from trellis.utils import postprocessing_utils
 
 print("Creating model!")
-#pipeline = TrellisTextTo3DPipeline.from_pretrained("larsquaedvlieg/TRELLIS-text-large-fork")
-#pipeline.cuda()
-#pipeline_img = TrellisImageTo3DPipeline.from_pretrained("larsquaedvlieg/TRELLIS-image-large-fork")
-#pipeline_img.cuda()
+pipeline = TrellisTextTo3DPipeline.from_pretrained("larsquaedvlieg/TRELLIS-text-large-fork")
+pipeline.cuda()
+pipeline_img = TrellisImageTo3DPipeline.from_pretrained("larsquaedvlieg/TRELLIS-image-large-fork")
+pipeline_img.cuda()
 
 
 app = Flask(__name__)
@@ -107,15 +107,17 @@ def count_characters():
         else:
             print("Getting image from prompt!")
             imgs = [txt2img(prompt)]
-            output = pipeline.run(imgs, seed=1234)
+            output = pipeline_img.run_multi_image(imgs, seed=1234)
 
     ret = {"imgs": []}
     if imgs is not None:
         ret["imgs"] = []
         for img in imgs:
             img.save(png_cache)
-            with open(f, "rb") as f:
+            with open(png_cache, "rb") as f:
                 ret["imgs"].append(base64.b64encode(f.read()).decode("utf-8"))
+        ret["image"] = ret["imgs"][0]
+        del ret["imgs"]
 
     glb = postprocessing_utils.to_glb(output["gaussian"][0], output["mesh"][0],
                                       simplify=0.95, texture_size=1024)
